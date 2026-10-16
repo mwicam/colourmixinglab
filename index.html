@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RGB Colour Mixer</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:#fff;font-family:Arial,Helvetica,sans-serif;color:#25344c}
+.mixer{max-width:760px;margin:0 auto;padding:8px 12px 12px}
+.preview{height:155px;width:100%;border-radius:14px;background:#ffebb3;border:1px solid #dedee4;transition:background-color .08s linear}
+.readout{display:flex;gap:8px 20px;align-items:baseline;justify-content:space-between;flex-wrap:wrap;padding:11px 2px 4px}
+.name{font-weight:700;font-size:17px;color:#25344c}
+.codes{display:flex;gap:14px;flex-wrap:wrap;font-size:14px;font-variant-numeric:tabular-nums}
+.code{white-space:nowrap}
+.code b{color:#34455d}
+.control{margin-top:10px}
+.line{display:flex;align-items:center;justify-content:space-between;font-size:14px;margin-bottom:5px}
+.line output{color:#34455d;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;height:20px;margin:0;cursor:pointer}
+#red{accent-color:#e13b47}#green{accent-color:#15965c}#blue{accent-color:#2e6bea}
+@media(max-width:450px){.preview{height:125px}.name{font-size:15px}.codes{font-size:12px}.mixer{padding:5px 8px 10px}}
+</style>
+</head>
+<body>
+<div class="mixer">
+  <div class="preview" id="preview" role="img" aria-label="Selected mixed colour"></div>
+  <div class="readout">
+    <div class="name" id="colourName">Warm white</div>
+    <div class="codes"><span class="code"><b>HEX:</b> <span id="hex">#FFEBB3</span></span><span class="code"><b>RGB:</b> <span id="rgb">255, 235, 179</span></span></div>
+  </div>
+  <div class="control"><div class="line"><label for="red" style="color:#dc2239">Red</label><output id="redOut">255</output></div><input id="red" type="range" min="0" max="255" value="255"></div>
+  <div class="control"><div class="line"><label for="green" style="color:#12834a">Green</label><output id="greenOut">235</output></div><input id="green" type="range" min="0" max="255" value="235"></div>
+  <div class="control"><div class="line"><label for="blue" style="color:#225dde">Blue</label><output id="blueOut">179</output></div><input id="blue" type="range" min="0" max="255" value="179"></div>
+</div>
+<script>
+(() => {
+  const ids=['red','green','blue'];
+  const sliders=ids.map(id=>document.getElementById(id));
+  const names=[
+    ['Black','#000000'],['White','#FFFFFF'],['Gray','#808080'],['Silver','#C0C0C0'],
+    ['Red','#FF0000'],['Dark red','#8B0000'],['Coral','#FF7F50'],['Salmon','#FA8072'],
+    ['Orange','#FFA500'],['Amber','#FFBF00'],['Gold','#FFD700'],['Yellow','#FFFF00'],
+    ['Lemon','#FFF44F'],['Olive','#808000'],['Green','#008000'],['Lime','#00FF00'],
+    ['Mint','#98FF98'],['Teal','#008080'],['Turquoise','#40E0D0'],['Cyan','#00FFFF'],
+    ['Sky blue','#87CEEB'],['Light blue','#ADD8E6'],['Blue','#0000FF'],['Royal blue','#4169E1'],
+    ['Navy blue','#000080'],['Indigo','#4B0082'],['Violet','#8F00FF'],['Purple','#800080'],
+    ['Lavender','#E6E6FA'],['Magenta','#FF00FF'],['Fuchsia','#FF00FF'],['Pink','#FFC0CB'],
+    ['Hot pink','#FF69B4'],['Rose','#FF007F'],['Peach','#FFE5B4'],['Cream','#FFFDD0'],
+    ['Warm white','#FFF0CB'],['Cool white','#E8F3FF'],['Brown','#8B4513'],['Maroon','#800000']
+  ].map(([name,hex])=>({name, rgb:[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16))}));
+  function srgbToLinear(x){let v=x/255;return v<=0.04045?v/12.92:((v+0.055)/1.055)**2.4}
+  function lab(rgb){let [r,g,b]=rgb.map(srgbToLinear);let x=(r*.4124564+g*.3575761+b*.1804375)/.95047,y=r*.2126729+g*.7151522+b*.072175,z=(r*.0193339+g*.119192+b*.9503041)/1.08883;let f=t=>t>.008856?Math.cbrt(t):7.787*t+16/116;x=f(x);y=f(y);z=f(z);return [116*y-16,500*(x-y),200*(y-z)]}
+  const palette=names.map(n=>({...n,lab:lab(n.rgb)}));
+  const hexPart=v=>v.toString(16).padStart(2,'0').toUpperCase();
+  function update(){
+    const values=sliders.map(s=>Number(s.value));
+    const code='#'+values.map(hexPart).join('');
+    document.getElementById('preview').style.backgroundColor=code;
+    document.getElementById('preview').setAttribute('aria-label','Mixed colour '+code);
+    document.getElementById('hex').textContent=code;
+    document.getElementById('rgb').textContent=values.join(', ');
+    ids.forEach((id,i)=>document.getElementById(id+'Out').textContent=values[i]);
+    const target=lab(values);
+    const closest=palette.reduce((a,n)=>{let d=n.lab.reduce((sum,x,i)=>sum+(x-target[i])**2,0);return d<a.d?{name:n.name,d}:a},{name:'',d:Infinity});
+    document.getElementById('colourName').textContent=closest.name;
+  }
+  sliders.forEach(s=>s.addEventListener('input',update));
+  update();
+})();
+</script>
+</body>
+</html>
